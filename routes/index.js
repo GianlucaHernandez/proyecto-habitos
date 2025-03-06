@@ -8,6 +8,15 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+router.get('/habit', async function(req, res, next) {
+  try {
+    const habits = await Habit.find();
+    res.json(habits);
+  } catch (err) {
+    res.status(500).json({ message: 'Error retrieving habits' });
+  }
+});
+
 router.post('/habit',async function(req, res, next) {
   try{
   const {title, description} =  req.body;
