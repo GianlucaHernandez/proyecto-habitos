@@ -53,4 +53,36 @@ router.put('/habit/:id', async (req, res, next)=>{
   }
 });
 
+router.patch('/habit/markasdone/:id', async (req,res)=> {
+  try{
+    const habit = await Habit.findById(req.params.id);
+    habit.lastDone = new Date();
+    if (timeDifferenceInHours(habit.lastDone, habit.lastUpdated) < 24){
+      habit.lastUpdated = new Date();
+      habit.days = timeDifferenceInDays(habit.lastDone, habit.startedAt);
+      habit.save();
+      res.status(200).json({message: 'Habit marked as done'});
+    }else{
+      habit.days = 1;
+      habit.lastUpdated = new Date();
+      habit.startedAt = new Date();
+      habit.save();
+      res.status(200).json({message: 'Habit restarted'});
+
+    }
+  }catch(err){
+    res.status(500).json({message: 'Error updating Habit'});
+  }
+});
+
+const timeDifferenceInHours = (date1, date2) => {
+  const diffnceMS = Math.abs(date1 - date2);
+  return diffnceMS / (1000 * 60 * 60); 
+}
+
+const timeDifferenceInDays = (date1, date2) => {
+  const diffnceMS = Math.abs(date1 - date2);
+  return Math.floor(diffnceMS / (1000 * 60 * 60 * 24));
+}
+
 module.exports = router;
