@@ -1,4 +1,5 @@
 require('./config/database');
+require('dotenv').config();
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -13,6 +14,7 @@ var usersRouter = require('./routes/users');
 //configuracion de cors
 app.use(cors({
   origin: 'http://localhost:3001', // Permite solicitudes desde el frontend en el puerto 3001
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

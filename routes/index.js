@@ -1,34 +1,58 @@
 var express = require('express');
 var router = express.Router();
 const Habit = require('../modelo/habit');
-const habit = require('../modelo/habit');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+
+const authenticateToken = (req, res, next) => {
+  const token = req.header('Authorization');
+  if(!token)
+     return res.status(401).json({ message: 'Access denied'});
+  try {
+    const tokenWithoutBearer = token.replace("Bearer ", "");
+    const verified = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  }catch(error){
+    console.error(error); 
+    res.status(401),json({ message: 'Invalid token'});
+  }
+}
+
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-router.get('/habit', async function(req, res, next) {
+router.get('/habit', authenticateToken, async (req, res) => {
   try {
-    const habits = await Habit.find();
-    res.json(habits);
+   let userId = req.user && req.user.userId ? req.user.userId : res.status(500).json({message : "Error retrieving habits"});
+    console.log(req.user.userId);
+    const habits = await Habit.find({'userId': new mongoose.Types.ObjectId(userId)});
+    res.json(habits); 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Error retrieving habits' });
   }
 });
 
-router.post('/habit',async function(req, res, next) {
+router.post('/habit', authenticateToken,async function(req, res) {
   try{
-  const {title, description} =  req.body;
-  const habit = new Habit({title, description});
-  await habit.save();
+    console.log(req.body);
+    let {title, description} =  req.body;
+    let userId = req.user && req.user.userId ? req.user.userId: res.status(500).json({ message: "Error adding habits"});
+    userId = new mongoose.Types.ObjectId(userId);
+    const habit = new Habit({title, description, userId});
+    await habit.save();
   res.json(habit);
   }catch(err){
+    console.error(err);
     res.status(400).json({message: 'Error creating habit'});
   }
 });
 
-router.delete('/habit/:id', async (req, res, next)=>{
+router.delete('/habit/:id', authenticateToken,async (req, res)=>{
   try{
     await Habit.findByIdAndDelete(req.params.id);
     res.json({ message: 'habit deleted'})
@@ -37,7 +61,7 @@ router.delete('/habit/:id', async (req, res, next)=>{
   }
 });
 
-router.put('/habit/:id', async (req, res, next)=>{
+router.put('/habit/:id', authenticateToken,async (req, res, next)=>{
   try{
     const{title, description} = req.body;
     const updateHabit = await Habit.findByIdAndUpdate(req.params.id,
@@ -53,7 +77,7 @@ router.put('/habit/:id', async (req, res, next)=>{
   }
 });
 
-router.patch('/habit/markasdone/:id', async (req,res)=> {
+router.patch('/habit/markasdone/:id', authenticateToken,async (req,res)=> {
   try{
     const habit = await Habit.findById(req.params.id);
     habit.lastDone = new Date();
